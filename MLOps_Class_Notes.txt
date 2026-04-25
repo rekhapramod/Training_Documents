@@ -2396,3 +2396,289 @@ Next :::
 
 		- AWS Sagemaker-AI 
 			
+
+			
+######################
+Day-8 | 25th Apr. 2026
+######################				
+			
+	Create CI-CD Pipeline :
+	
+	
+	GitHub Actions :::
+	
+	CI & CD :::
+	
+	CI :
+	
+		Build Environment ::
+			
+			- Prepare the Source Code (GitHub Repo)
+			- Compile 
+			- Application Build 				-> *.pkl => Upload it to S3 Bucket.
+			- Docker Build 
+			- Publish the Image to Container Registry
+			
+	CD :
+		
+		Kubernetes Cluster ::
+		
+			- Kubernetes_Master 
+				- Kubernetes_WN1,WN2
+	
+	
+	
+	
+	ML Project :::
+	
+		-> src 
+			-> Data Validation 
+			-> Data Processing 
+			-> Train the Model 
+		
+		-> api 
+			-> main.py -> Business Logic --> Create APIs - FastAPI
+		
+		-> ui 		
+			-> app.py -> 
+		
+		-> DockerFiles 		
+			-> Package --> api & ui 
+		
+		-> Kubernetes Manifest Files 		
+			-> Manifest files -> to deploy api * ui 
+			
+			
+	-> In S3 Bucket ::
+	
+		-> Datasets ::::
+		
+	-> DVC :
+	
+			git 
+			
+			DVC Pipeline :				# dvc repro
+			
+				-> Data Validation 
+				-> Data Processing 
+				-> Train the Model 		
+
+
+	--> GitHub 			==>	Version Control the Source Codes *.py / Manifest files / Meta Data
+	
+	--> DVC 			==> Version Control Datasets & Execute DVC Pipeline 
+	
+	--> S3 				==> Version Control the MetaData / Pickle files / Datasets 
+	
+	--> DockerHub 		==> Version Control the Container Images 
+	
+	
+	CICD - Pipelines --> Job1: Automate the Application Build, Docker Image Build, Deploy to Kubernetes
+			
+	
+	CICD - Pipelines --> Job1: Automate the Application Build
+	
+					 --> Job2: Docker Image Build
+					 
+					 --> Job3: Deploy to Kubernetes		
+	
+		
+	-> Create Project :::
+	
+	
+		Build Environment :
+		
+			-> python environment 
+	
+Workflow ::::	
+
+	1. DVC is used to manage the Input Dataset for Model Training 
+	
+	2. dvc repro 		# Reproduce  ==> Train the Model 
+
+	3. Trained Model ==> ML Artifacts ==> model.joblib / pickle 
+	
+	4. Used DVC to maintain the Artifacts - S3 
+	
+	5. Use that artifacts and dependencies to create Dockerfile and create Docker Image 
+	
+	6. Publish Docker Image to Container Registry
+	
+	7. Deploy to Kubernetes 		
+			
+
+(loksai_env) root@ip-172-31-32-198:~/mlops-workspace/mlops-e2e-project-src-v0# cat requirements.txt
+
+# Core
+numpy
+pandas
+scikit-learn
+joblib
+
+# API
+fastapi
+uvicorn
+
+# UI
+streamlit
+requests
+
+# Experiment tracking
+mlflow
+boto3
+
+			
+
+Build Server :::
+
+- Create Python Virtual Environment to work with MLOps Tools
+
+python3.12 -m venv venv
+
+source venv/bin/activate
+		
+<Download project to build environment>			# Git clone 
+
+cd <project_Folder>
+
+pip install -r requirements.txt
+			
+git init 
+
+dvc init 							# Initialize DVC Repo & Create *dvcignore,config files add to git staging area
+
+dvc remote add -d myremote s3://loksai-edu-mlproject1
+
+git add .dvc/config
+
+git commit -m "Configure DVC S3 remote"
+
+vi data/raw/reviews.csv				# Add sample Records as shown below		
+
+dvc add data/raw/reviews.csv		# Add data/raw/reviews.csv to git after every dvc add
+
+git add data/raw/reviews.csv.dvc data/raw/.gitignore
+
+git commit -m "Added DVC Data-v1"
+
+dvc repro
+
+git add data/processed/.gitignore models/.gitignore dvc.lock			# Add dvc.lock to git after every dvc repro
+
+git commit -m "repro-Processed data-v1"
+
+dvc push 							# Push repro-Processed data 
+
+dvc status							# Status should be: Data and pipelines are up to date.
+			
+
+
+Experimentation ::::
+
+Start MLflow UI (ONLY correct command)
+mlflow ui --host 0.0.0.0 --port 5000 --allowed-hosts '*'
+
+Open in browser
+http://<EC2_PUBLIC_IP>:5000
+
+13.234.59.99:5000
+
+
+### OPTIONAL: MODEL VALIDATION
+Run API locally
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+Open in browser
+http://<EC2_PUBLIC_IP>:8000
+
+13.234.59.99:8000
+http://13.234.59.99:8000/docs
+
+### Run Streamlit
+streamlit run ui/app.py --server.address 0.0.0.0			### Confirm predictions change with new data.
+
+Open in browser
+http://<EC2_PUBLIC_IP>:8501
+
+13.234.59.99:8501
+
+		
+Automate using Build Orchestration tools like Github-Actions/Azure-Pipelines/gitlab-ci
+
+/Jenkins --> CICD Applications build 
+
+
+		- SCM_Checkout the Source Code (GitHub Repo)
+		- Compile 
+		- Application Build 				-> *.pkl => Upload it to S3 Bucket.
+		- Docker Build 
+		- Publish the Image to Container Registry	
+
+Pre-requisites ::
+	
+	-	GitHub Repository with the ML Project Source Codes 
+	-	Active GitHub Access Token (enabled with github-actions)
+	
+	- 	On GitHub Actions Setting - Create the Environment Variables
+				--> Credential Managers
+
+	
+	
+	
+			
+# Create data/raw/review.csv 
+
+
+review_text,sentiment
+I love this product it works perfectly,positive
+Absolutely fantastic quality and service,positive
+Very happy with the purchase,positive
+Great experience would buy again,positive
+Excellent product highly recommended,positive
+Amazing performance and value,positive
+Satisfied with quality and delivery,positive
+Works exactly as advertised,positive
+Customer support was very helpful,positive
+This is the best purchase I have made,positive
+
+This product is okay not great not bad,neutral
+Average quality nothing special,neutral
+It works but has some issues,neutral
+Neither good nor bad experience,neutral
+Product meets basic expectations,neutral
+Decent but could be improved,neutral
+Acceptable quality for the price,neutral
+Nothing impressive but usable,neutral
+Fine for occasional use,neutral
+Okayish experience overall,neutral
+
+Worst product I have ever bought,negative
+Very disappointed with the quality,negative
+Terrible experience waste of money,negative
+Does not work as expected at all,negative
+Extremely poor build quality,negative
+Bad experience will not recommend,negative
+Product stopped working in two days,negative
+Customer service was terrible,negative
+Totally useless and overpriced,negative
+Highly dissatisfied with this product,negative
+
+I am happy with the fast delivery,positive
+Packaging was good and product works well,positive
+Average packaging but product is decent,neutral
+Late delivery and damaged box,negative
+The item arrived broken,negative
+Very smooth and reliable performance,positive
+Not worth the price paid,negative
+Okay product but slow response,neutral
+Loved the design and usability,positive
+Disappointed with the overall experience,negative
+			
+			
+			
+Next :::
+
+	- Deployment to Kubernetes
+	- Kubeflow 
+	
+	- Monitoring 
